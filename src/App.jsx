@@ -8,19 +8,18 @@ import { useAirQuality } from './hooks/useAirQuality.js';
 import { useTrafficData } from './hooks/useTrafficData.js';
 
 const DEFAULT_LAYERS = {
-  buildings: true,
+  buildings:   true,
   trafficFlow: true,
-  trafficIncidents: true,
-  airQuality: true,
+  airQuality:  true,
 };
 
 export default function App() {
-  const [layers, setLayers] = useState(DEFAULT_LAYERS);
+  const [layers, setLayers]                   = useState(DEFAULT_LAYERS);
   const [selectedFeature, setSelectedFeature] = useState(null);
-  const [chatOpen, setChatOpen] = useState(false);
+  const [chatOpen, setChatOpen]               = useState(false);
 
-  const { stations: airStations, loading: aqLoading, error: aqError } = useAirQuality();
-  const { incidents: trafficIncidents, loading: trafficLoading, error: trafficError } = useTrafficData();
+  const { stations: airStations }     = useAirQuality();
+  const { geojson: trafficGeojson }   = useTrafficData();
 
   const handleToggle = useCallback((id) => {
     setLayers((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -42,7 +41,6 @@ export default function App() {
     return (
       <div className="flex items-center justify-center w-full h-full bg-gray-950 text-white">
         <div className="max-w-md text-center p-8 bg-gray-900 rounded-2xl shadow-xl border border-gray-700">
-          <img src="/logo.png" alt="Uly Dala" className="w-24 h-24 mx-auto mb-4 object-contain" />
           <h1 className="text-xl font-bold mb-2">Uly Dala</h1>
           {isSecretToken ? (
             <>
@@ -83,7 +81,6 @@ export default function App() {
       <Map
         layers={layers}
         airStations={airStations}
-        trafficIncidents={trafficIncidents}
         onFeatureClick={handleFeatureClick}
       />
 
@@ -103,54 +100,29 @@ export default function App() {
         </button>
       )}
 
-      <div className="absolute bottom-16 right-4 z-10 flex flex-col items-end gap-1.5">
-        <StatusBadge
-          label="Air Quality"
-          loading={aqLoading}
-          error={aqError}
-          count={airStations.length}
-          color="cyan"
-        />
-        <StatusBadge
-          label="Traffic"
-          loading={trafficLoading}
-          error={trafficError}
-          count={trafficIncidents.length}
-          color="orange"
-        />
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
+        <div className="bg-gray-900/80 backdrop-blur-sm rounded-full pl-3 pr-5 py-1.5 border border-gray-700/50 shadow-xl flex items-center gap-2">
+          <img src="/logo.png" alt="Uly Dala" className="h-7 w-7 rounded-full object-cover" />
+          <span className="text-white text-sm font-semibold tracking-wide">Uly Dala</span>
+        </div>
       </div>
 
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
-        <div className="bg-gray-900/80 backdrop-blur-sm rounded-full pl-2 pr-5 py-1.5 border border-gray-700/50 shadow-xl flex items-center gap-2">
-          <img src="/logo.png" alt="Uly Dala" className="h-7 w-7 rounded-full object-cover" />
-          <span className="text-white text-sm font-semibold tracking-wide">
-            Uly Dala
-          </span>
-        </div>
+      <div className="absolute bottom-16 right-4 z-10 flex flex-col items-end gap-1.5">
+        <CountBadge label="Air Quality" count={airStations.length} color="cyan" />
+        <CountBadge label="Road Segments" count={trafficGeojson?.features?.length ?? 0} color="orange" />
       </div>
     </div>
   );
 }
 
-function StatusBadge({ label, loading, error, count, color }) {
+function CountBadge({ label, count, color }) {
   const colorMap = {
-    cyan: 'text-cyan-400 bg-cyan-400/10 border-cyan-400/20',
+    cyan:   'text-cyan-400 bg-cyan-400/10 border-cyan-400/20',
     orange: 'text-orange-400 bg-orange-400/10 border-orange-400/20',
   };
-
   return (
-    <div
-      className={`text-xs px-2.5 py-1 rounded-full border ${colorMap[color]} backdrop-blur-sm`}
-    >
-      {loading ? (
-        <span className="opacity-60">{label}...</span>
-      ) : error ? (
-        <span className="text-red-400">{label} unavailable</span>
-      ) : (
-        <span>
-          {label}: {count} {count === 1 ? 'item' : 'items'}
-        </span>
-      )}
+    <div className={`text-xs px-2.5 py-1 rounded-full border ${colorMap[color]} backdrop-blur-sm`}>
+      {label}: {count} {count === 1 ? 'item' : 'items'}
     </div>
   );
 }
