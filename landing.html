@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Uly Dala — Almaty City Intelligence Platform</title>
+  <meta name="description" content="AI-powered 3D map of Almaty. Real-time traffic predictions, air quality monitoring, and city management insights.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400;1,600&family=Figtree:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #050d1a;
+      --bg-light:     #0a1628;
+      --surface:      rgba(255,255,255,0.04);
+      --border:       rgba(255,255,255,0.08);
+      --primary:      #3b9eff;
+      --primary-glow: #60c8ff;
+      --accent:       #00e5ff;
+      --text:         #f0f6ff;
+      --text-muted:   #7a9cc4;
+      --section-pad:  120px;
+      --radius:       20px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Figtree', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* ── Grain overlay ── */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='600' height='600' filter='url(%23n)'/%3E%3C/svg%3E");
+      opacity: 0.028;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ── Cursor glow ── */
+    #cursor-glow {
+      position: fixed;
+      width: 420px;
+      height: 420px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(59,158,255,0.07) 0%, transparent 65%);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      z-index: 9998;
+      transition: left 0.08s linear, top 0.08s linear;
+    }
+
+    /* ── Navbar ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 200;
+      transition: background 0.35s ease, backdrop-filter 0.35s ease, border-color 0.35s ease;
+      border-bottom: 1px solid transparent;
+    }
+    nav.scrolled {
+      background: rgba(5,13,26,0.84);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border-bottom-color: var(--border);
+    }
+    .nav-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 22px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: var(--text);
+      text-decoration: none;
+      letter-spacing: -0.02em;
+    }
+    .nav-logo span { color: var(--primary); }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 40px;
+      list-style: none;
+    }
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .btn-nav {
+      background: var(--primary);
+      color: #fff;
+      padding: 10px 24px;
+      border-radius: 100px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+    }
+    .btn-nav:hover {
+      transform: scale(1.04);
+      box-shadow: 0 0 26px rgba(59,158,255,0.38);
+      background: var(--primary-glow);
+    }
+
+    /* ── Hero ── */
+    #hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      padding: 120px 32px 80px;
+    }
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 15% 15%, rgba(59,158,255,0.13) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 85% 85%, rgba(0,229,255,0.09) 0%, transparent 60%),
+        radial-gradient(ellipse 45% 45% at 50% 50%, rgba(59,158,255,0.05) 0%, transparent 70%),
+        linear-gradient(180deg, var(--bg) 0%, #061120 100%);
+    }
+
+    /* Animated orbs */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+    }
+    .orb-1 {
+      width: 620px; height: 620px;
+      background: radial-gradient(circle, rgba(59,158,255,0.16), transparent 70%);
+      top: -180px; left: -120px;
+      animation: drift1 18s ease-in-out infinite;
+    }
+    .orb-2 {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(0,229,255,0.1), transparent 70%);
+      bottom: -120px; right: -100px;
+      animation: drift2 22s ease-in-out infinite;
+    }
+    .orb-3 {
+      width: 320px; height: 320px;
+      background: radial-gradient(circle, rgba(96,200,255,0.12), transparent 70%);
+      top: 42%; left: 62%;
+      animation: drift3 14s ease-in-out infinite;
+    }
+    @keyframes drift1 {
+      0%,100% { transform: translate(0,0) scale(1); }
+      33%      { transform: translate(50px,-35px) scale(1.07); }
+      66%      { transform: translate(-25px,25px) scale(0.94); }
+    }
+    @keyframes drift2 {
+      0%,100% { transform: translate(0,0) scale(1); }
+      40%      { transform: translate(-35px,22px) scale(1.05); }
+      70%      { transform: translate(22px,-18px) scale(0.96); }
+    }
+    @keyframes drift3 {
+      0%,100% { transform: translate(0,0) scale(1); }
+      50%      { transform: translate(-28px,35px) scale(1.1); }
+    }
+
+    .hero-content { position: relative; z-index: 2; max-width: 820px; }
+
+    /* Pill */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(59,158,255,0.1);
+      border: 1px solid rgba(59,158,255,0.24);
+      border-radius: 100px;
+      padding: 9px 18px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--primary-glow);
+      margin-bottom: 36px;
+      animation: fadeUp 0.65s ease both;
+    }
+    .pill-dot {
+      width: 7px; height: 7px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: blink 2.2s ease-in-out infinite;
+    }
+    @keyframes blink {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: 0.4; transform: scale(0.7); }
+    }
+
+    /* Headline */
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(3rem, 6.5vw, 5.4rem);
+      font-weight: 700;
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      margin-bottom: 28px;
+    }
+    h1 em { font-style: italic; color: var(--primary); }
+    h1 .line { display: block; animation: fadeUp 0.65s ease both; }
+    h1 .line:nth-child(1) { animation-delay: 0.12s; }
+    h1 .line:nth-child(2) { animation-delay: 0.24s; }
+
+    .hero-sub {
+      font-size: clamp(1rem, 2vw, 1.2rem);
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto 44px;
+      line-height: 1.75;
+      animation: fadeUp 0.65s 0.34s ease both;
+    }
+
+    /* CTA */
+    .cta-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      animation: fadeUp 0.65s 0.46s ease both;
+    }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--primary);
+      color: #fff;
+      padding: 15px 30px;
+      border-radius: 100px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+    }
+    .btn-primary:hover {
+      transform: scale(1.04);
+      box-shadow: 0 0 32px rgba(59,158,255,0.48), 0 10px 28px rgba(0,0,0,0.3);
+      background: var(--primary-glow);
+    }
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: transparent;
+      color: var(--text-muted);
+      padding: 15px 30px;
+      border-radius: 100px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .btn-ghost:hover { color: var(--text); border-color: rgba(255,255,255,0.22); }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(28px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Map mockup */
+    .hero-visual {
+      margin-top: 64px;
+      position: relative;
+      z-index: 2;
+      animation: fadeUp 0.65s 0.58s ease both;
+    }
+    .map-mock {
+      width: 100%;
+      max-width: 740px;
+      margin: 0 auto;
+      height: 360px;
+      background: var(--bg-light);
+      border: 1px solid rgba(59,158,255,0.14);
+      border-radius: 24px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 48px 110px rgba(0,0,0,0.55), 0 0 0 1px rgba(59,158,255,0.08), inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+    .map-mock::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 70% 70% at 40% 50%, rgba(59,158,255,0.05) 0%, transparent 70%),
+        linear-gradient(135deg, rgba(10,22,40,0.92) 0%, rgba(5,13,26,1) 100%);
+      z-index: 1;
+    }
+    .map-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(59,158,255,0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59,158,255,0.045) 1px, transparent 1px);
+      background-size: 44px 44px;
+    }
+    .road { position: absolute; border-radius: 2px; }
+    .road-h { height: 2px; }
+    .road-v { width: 2px; }
+    .map-center {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+    }
+    .map-live-badge {
+      background: rgba(59,158,255,0.12);
+      border: 1px solid rgba(59,158,255,0.3);
+      border-radius: 100px;
+      padding: 7px 16px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--primary-glow);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .live-dot {
+      width: 6px; height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: blink 2s ease-in-out infinite;
+    }
+    .map-city-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: rgba(240,246,255,0.9);
+      letter-spacing: -0.02em;
+    }
+    .dot-row {
+      display: flex;
+      gap: 8px;
+    }
+    .aq-dot {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      animation: mapPulse 2.5s ease-in-out infinite;
+    }
+    @keyframes mapPulse {
+      0%,100% { transform: scale(1); opacity: 0.9; }
+      50%      { transform: scale(1.6); opacity: 0.45; }
+    }
+    .map-corner-badge {
+      position: absolute;
+      bottom: 18px; right: 20px;
+      z-index: 4;
+      background: rgba(10,22,40,0.85);
+      border: 1px solid rgba(59,158,255,0.2);
+      border-radius: 12px;
+      padding: 9px 14px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      backdrop-filter: blur(8px);
+    }
+    .map-corner-badge strong { color: #22c55e; }
+    .map-corner-badge span  { color: var(--text-muted); }
+
+    /* ── Stats Bar ── */
+    #stats { padding: 64px 40px; }
+    .stats-inner {
+      max-width: 1080px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .stat {
+      background: var(--bg-light);
+      padding: 40px 24px;
+      text-align: center;
+    }
+    .stat-value {
+      font-family: 'Playfair Display', serif;
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--primary);
+      line-height: 1;
+      margin-bottom: 10px;
+    }
+    .stat-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* ── Common Section ── */
+    section { padding: var(--section-pad) 40px; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent 5%, var(--border) 40%, var(--border) 60%, transparent 95%);
+      margin: 0 40px;
+    }
+    .section-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(59,158,255,0.08);
+      border: 1px solid rgba(59,158,255,0.18);
+      border-radius: 100px;
+      padding: 7px 16px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 22px;
+    }
+    h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2.2rem, 4.5vw, 3.4rem);
+      font-weight: 700;
+      line-height: 1.12;
+      letter-spacing: -0.025em;
+      color: var(--text);
+      margin-bottom: 18px;
+    }
+    h2 em { font-style: italic; color: var(--primary); }
+    .section-sub {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      max-width: 560px;
+      line-height: 1.75;
+      margin-bottom: 56px;
+    }
+
+    /* ── Features ── */
+    #features { background: var(--bg); }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 38px 34px;
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+    .feature-card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 10%, rgba(59,158,255,0.35) 50%, transparent 90%);
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+    .feature-card:hover {
+      transform: translateY(-7px);
+      border-color: rgba(59,158,255,0.24);
+      box-shadow: 0 28px 70px rgba(0,0,0,0.35), 0 0 0 1px rgba(59,158,255,0.1);
+    }
+    .feature-card:hover::after { opacity: 1; }
+    .feature-icon {
+      width: 54px; height: 54px;
+      background: rgba(59,158,255,0.1);
+      border: 1px solid rgba(59,158,255,0.2);
+      border-radius: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 26px;
+      font-size: 1.5rem;
+    }
+    .feature-card h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 14px;
+      letter-spacing: -0.01em;
+    }
+    .feature-card p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.75;
+    }
+    .feature-tag {
+      margin-top: 26px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      opacity: 0.85;
+    }
+
+    /* ── Asymmetric (How it works) ── */
+    #how { background: linear-gradient(180deg, var(--bg) 0%, var(--bg-light) 100%); }
+    .asym-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 96px;
+      align-items: center;
+    }
+    .asym-left p {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      line-height: 1.8;
+      margin-bottom: 36px;
+    }
+    .step-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 26px 28px;
+      backdrop-filter: blur(12px);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: flex-start;
+      gap: 18px;
+      transition: transform 0.25s ease, border-color 0.25s ease;
+    }
+    .step-card:hover {
+      transform: translateX(8px);
+      border-color: rgba(59,158,255,0.22);
+    }
+    .step-num {
+      min-width: 38px; height: 38px;
+      background: rgba(59,158,255,0.1);
+      border: 1px solid rgba(59,158,255,0.22);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: var(--primary);
+      letter-spacing: 0.02em;
+    }
+    .step-text h4 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 7px;
+    }
+    .step-text p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    /* ── Quote ── */
+    #proof { background: var(--bg); text-align: center; }
+    .proof-quote {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.5rem, 3vw, 2.3rem);
+      font-style: italic;
+      color: var(--text);
+      max-width: 720px;
+      margin: 0 auto 28px;
+      line-height: 1.5;
+    }
+    .proof-quote em { font-style: normal; color: var(--primary); font-weight: 600; }
+    .proof-source {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-bottom: 64px;
+    }
+    .proof-source strong { color: var(--text); }
+    .trust-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .trust-badge {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 22px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .trust-badge:hover { border-color: rgba(59,158,255,0.22); color: var(--text); }
+
+    /* ── CTA ── */
+    #cta {
+      text-align: center;
+      background:
+        radial-gradient(ellipse 70% 90% at 50% 50%, rgba(59,158,255,0.1) 0%, transparent 70%),
+        linear-gradient(180deg, var(--bg-light) 0%, var(--bg) 100%);
+    }
+    #cta h2 { margin-bottom: 18px; }
+    #cta .sub { color: var(--text-muted); font-size: 1.1rem; margin-bottom: 44px; max-width: 480px; margin-left: auto; margin-right: auto; }
+    #cta .btn-primary { font-size: 1.05rem; padding: 17px 38px; }
+
+    /* ── Footer ── */
+    footer {
+      padding: 40px 40px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+    .footer-logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .footer-logo span { color: var(--primary); }
+    .footer-copy { font-size: 0.8rem; color: var(--text-muted); }
+    .footer-links { display: flex; gap: 28px; }
+    .footer-links a { font-size: 0.82rem; color: var(--text-muted); text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover { color: var(--text); }
+
+    /* ── Scroll reveal ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(36px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      :root { --section-pad: 80px; }
+      .nav-links { display: none; }
+      .features-grid { grid-template-columns: 1fr; }
+      .stats-inner { grid-template-columns: repeat(2, 1fr); }
+      .asym-grid { grid-template-columns: 1fr; gap: 52px; }
+      .nav-inner { padding: 18px 24px; }
+      section { padding: var(--section-pad) 24px; }
+      .divider { margin: 0 24px; }
+    }
+    @media (max-width: 540px) {
+      .trust-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="cursor-glow"></div>
+
+  <!-- ── Navbar ── -->
+  <nav id="navbar">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">Uly<span>Dala</span></a>
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#how">How it works</a></li>
+        <li><a href="#proof">About</a></li>
+      </ul>
+      <a href="./" class="btn-nav">Launch Map →</a>
+    </div>
+  </nav>
+
+  <!-- ── Hero ── -->
+  <section id="hero">
+    <div class="hero-bg"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+
+    <div class="hero-content">
+      <div class="pill">
+        <span class="pill-dot"></span>
+        Now in Beta &nbsp;·&nbsp; AI-powered city intelligence
+        <span style="opacity:.55">→</span>
+      </div>
+
+      <h1>
+        <span class="line">Almaty's pulse,</span>
+        <span class="line"><em>predicted</em> by AI.</span>
+      </h1>
+
+      <p class="hero-sub">
+        A living 3D map that forecasts traffic jams, monitors air quality in real time, and gives city officials the insights they need to act — before problems arise.
+      </p>
+
+      <div class="cta-row">
+        <a href="./" class="btn-primary">
+          Launch Map
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a href="#features" class="btn-ghost">
+          See features
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+        </a>
+      </div>
+
+      <div class="hero-visual">
+        <div class="map-mock">
+          <div class="map-grid"></div>
+
+          <!-- Stylised road segments -->
+          <div class="road road-h" style="width:55%;top:38%;left:18%;background:linear-gradient(90deg,rgba(34,197,94,.65),rgba(250,204,21,.65),rgba(239,68,68,.65));opacity:.7;"></div>
+          <div class="road road-h" style="width:38%;top:52%;left:28%;background:rgba(34,197,94,.55);"></div>
+          <div class="road road-h" style="width:30%;top:62%;left:36%;background:rgba(249,115,22,.55);"></div>
+          <div class="road road-v" style="height:45%;top:22%;left:44%;background:linear-gradient(180deg,rgba(249,115,22,.5),rgba(34,197,94,.5));"></div>
+          <div class="road road-v" style="height:38%;top:28%;left:62%;background:rgba(250,204,21,.5);"></div>
+          <div class="road road-v" style="height:30%;top:35%;left:74%;background:rgba(34,197,94,.5);"></div>
+
+          <!-- AQ station dots -->
+          <div style="position:absolute;top:30%;left:35%;width:10px;height:10px;border-radius:50%;background:#22c55e;box-shadow:0 0 8px #22c55e;z-index:4;animation:mapPulse 2.5s .2s ease-in-out infinite;"></div>
+          <div style="position:absolute;top:48%;left:55%;width:10px;height:10px;border-radius:50%;background:#facc15;box-shadow:0 0 8px #facc15;z-index:4;animation:mapPulse 2.5s .7s ease-in-out infinite;"></div>
+          <div style="position:absolute;top:25%;left:65%;width:10px;height:10px;border-radius:50%;background:#f97316;box-shadow:0 0 8px #f97316;z-index:4;animation:mapPulse 2.5s 1.1s ease-in-out infinite;"></div>
+          <div style="position:absolute;top:60%;left:42%;width:10px;height:10px;border-radius:50%;background:#22c55e;box-shadow:0 0 8px #22c55e;z-index:4;animation:mapPulse 2.5s .4s ease-in-out infinite;"></div>
+
+          <div class="map-center">
+            <div class="map-live-badge">
+              <span class="live-dot"></span>
+              Live · Almaty
+            </div>
+            <div class="map-city-name">Алматы</div>
+          </div>
+
+          <div class="map-corner-badge">
+            AQI &nbsp;<strong>67</strong>&nbsp; <span>· Good</span>
+          </div>
+
+          <!-- Traffic legend chip -->
+          <div style="position:absolute;bottom:18px;left:20px;z-index:4;background:rgba(10,22,40,.85);border:1px solid var(--border);border-radius:10px;padding:7px 12px;font-size:.72rem;color:var(--text-muted);display:flex;align-items:center;gap:8px;backdrop-filter:blur(8px);">
+            <span style="display:inline-flex;gap:4px;align-items:center;">
+              <span style="width:18px;height:3px;border-radius:2px;background:#22c55e;display:inline-block;"></span>
+              <span style="width:14px;height:3px;border-radius:2px;background:#facc15;display:inline-block;"></span>
+              <span style="width:14px;height:3px;border-radius:2px;background:#ef4444;display:inline-block;"></span>
+            </span>
+            Traffic flow
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Stats Bar ── -->
+  <div id="stats">
+    <div class="stats-inner reveal">
+      <div class="stat">
+        <div class="stat-value">72h</div>
+        <div class="stat-label">AI Traffic Forecast</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">75+</div>
+        <div class="stat-label">AQ Monitoring Stations</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">82</div>
+        <div class="stat-label">Road Segments Tracked</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">10</div>
+        <div class="stat-label">AI Recommendations</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ── Features ── -->
+  <section id="features">
+    <div class="container">
+      <div class="section-tag">
+        <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg>
+        Platform features
+      </div>
+      <h2>Everything the city needs, <em>in one view.</em></h2>
+      <p class="section-sub">From granular road-level traffic predictions to air quality data and actionable Akimat recommendations — all on a single 3D map.</p>
+
+      <div class="features-grid">
+        <div class="feature-card reveal">
+          <div class="feature-icon">🚦</div>
+          <h3>AI Traffic Prediction</h3>
+          <p>72-hour congestion forecasts for every major road segment. Know when Al-Farabi will jam before rush hour hits — and suggest alternative routes automatically.</p>
+          <div class="feature-tag">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            4 congestion levels · Color-coded live
+          </div>
+        </div>
+
+        <div class="feature-card reveal" style="transition-delay:.1s">
+          <div class="feature-icon">🌬️</div>
+          <h3>Air Quality Intelligence</h3>
+          <p>Real-time PM2.5, PM10, NO₂, O₃, CO and SO₂ monitoring across 75+ stations. Heatmap + circle layers with detailed per-station popups and health advisories.</p>
+          <div class="feature-tag">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            6 pollutants tracked per station
+          </div>
+        </div>
+
+        <div class="feature-card reveal" style="transition-delay:.2s">
+          <div class="feature-icon">📊</div>
+          <h3>Akimat Dashboard</h3>
+          <p>Full-screen city management view: KPIs, zone analytics, 3-day AI outlook, and priority-ranked action cards — traffic rerouting, signal timing, vehicle restrictions.</p>
+          <div class="feature-tag">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            Powered by Uly Dala · Priority-ranked
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ── How it works ── -->
+  <section id="how">
+    <div class="container">
+      <div class="asym-grid">
+        <div class="asym-left reveal">
+          <div class="section-tag">How it works</div>
+          <h2>Built for the city that <em>never rests.</em></h2>
+          <p>Uly Dala fuses real-time sensor data, historical traffic patterns, and large language models to produce actionable forecasts — not just visualisations.</p>
+          <a href="./" class="btn-primary">Open the live map →</a>
+        </div>
+
+        <div class="asym-right">
+          <div class="step-card reveal" style="transition-delay:.06s">
+            <div class="step-num">01</div>
+            <div class="step-text">
+              <h4>Data ingestion</h4>
+              <p>75+ air quality stations and 82 road segments feed live readings — congestion levels, PM2.5, temperature, wind speed — into the platform every hour.</p>
+            </div>
+          </div>
+          <div class="step-card reveal" style="transition-delay:.14s">
+            <div class="step-num">02</div>
+            <div class="step-text">
+              <h4>AI-driven prediction</h4>
+              <p>A predictive model trained on Almaty's rush-hour rhythms, weekday/weekend cycles, Friday PM surges, and weather impact generates 72-hour forecasts.</p>
+            </div>
+          </div>
+          <div class="step-card reveal" style="transition-delay:.22s">
+            <div class="step-num">03</div>
+            <div class="step-text">
+              <h4>Gemini synthesises insights</h4>
+              <p>Google Gemini reads the forecast context and writes natural-language advisories for citizens — and strategic action items for the Akimat — in real time.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ── Social proof / Quote ── -->
+  <section id="proof">
+    <div class="container">
+      <p class="proof-quote reveal">
+        "The right tool for cities that want to move from <em>reactive</em> management to <em>predictive</em> governance."
+      </p>
+      <p class="proof-source reveal" style="transition-delay:.1s">
+        — <strong>Uly Dala</strong>, Almaty City Intelligence Platform &nbsp;·&nbsp; 2026
+      </p>
+
+      <div class="trust-row reveal" style="transition-delay:.2s">
+        <div class="trust-badge">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Secure &amp; privacy-first
+        </div>
+        <div class="trust-badge">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+          Updated every hour
+        </div>
+        <div class="trust-badge">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Bilingual · KZ &amp; EN
+        </div>
+        <div class="trust-badge">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          Powered by Uly Dala
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ── CTA ── -->
+  <section id="cta">
+    <div class="container">
+      <div class="reveal">
+        <div class="section-tag" style="margin:0 auto 22px;display:table;">Get started</div>
+        <h2>See Almaty differently.</h2>
+        <p class="sub">Open the interactive 3D map and experience real-time city intelligence — free, right in your browser.</p>
+        <a href="./" class="btn-primary">
+          Launch Uly Dala
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer ── -->
+  <footer>
+    <div class="footer-logo">Uly<span>Dala</span></div>
+    <div class="footer-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="./">Launch Map</a>
+    </div>
+    <div class="footer-copy">© 2026 Uly Dala · Almaty, Kazakhstan · Mapbox + Gemini AI</div>
+  </footer>
+
+  <script>
+    /* ── Cursor glow ── */
+    const cursorGlow = document.getElementById('cursor-glow');
+    document.addEventListener('mousemove', e => {
+      cursorGlow.style.left = e.clientX + 'px';
+      cursorGlow.style.top  = e.clientY + 'px';
+    });
+
+    /* ── Navbar blur on scroll ── */
+    const navbar = document.getElementById('navbar');
+    const onScroll = () => navbar.classList.toggle('scrolled', window.scrollY > 55);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    /* ── Scroll reveal ── */
+    const revealEls = document.querySelectorAll('.reveal');
+    const observer  = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+    revealEls.forEach(el => observer.observe(el));
+
+    /* ── Smooth anchor scroll ── */
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
+        const target = document.querySelector(a.getAttribute('href'));
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+  </script>
+</body>
+</html>
