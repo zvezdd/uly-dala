@@ -40,8 +40,8 @@ export default function App() {
     return (
       <div className="flex items-center justify-center w-full h-full bg-gray-950 text-white">
         <div className="max-w-md text-center p-8 bg-gray-900 rounded-2xl shadow-xl border border-gray-700">
-          <div className="text-5xl mb-4">{isSecretToken ? '🔑' : '🗺️'}</div>
-          <h1 className="text-xl font-bold mb-2">Almaty 3D Map</h1>
+          <img src="/logo.png" alt="Uly Dala" className="w-24 h-24 mx-auto mb-4 object-contain" />
+          <h1 className="text-xl font-bold mb-2">Uly Dala</h1>
           {isSecretToken ? (
             <>
               <p className="text-red-400 text-sm font-semibold mb-2">
@@ -108,9 +108,10 @@ export default function App() {
       </div>
 
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
-        <div className="bg-gray-900/80 backdrop-blur-sm rounded-full px-5 py-1.5 border border-gray-700/50 shadow-xl">
+        <div className="bg-gray-900/80 backdrop-blur-sm rounded-full pl-2 pr-5 py-1.5 border border-gray-700/50 shadow-xl flex items-center gap-2">
+          <img src="/logo.png" alt="Uly Dala" className="h-7 w-7 rounded-full object-cover" />
           <span className="text-white text-sm font-semibold tracking-wide">
-            Almaty 3D City Map
+            Uly Dala
           </span>
         </div>
       </div>
@@ -129,9 +130,9 @@ function StatusBadge({ label, loading, error, count, color }) {
       className={`text-xs px-2.5 py-1 rounded-full border ${colorMap[color]} backdrop-blur-sm`}
     >
       {loading ? (
-        <span className="opacity-60">⏳ {label}…</span>
+        <span className="opacity-60">{label}...</span>
       ) : error ? (
-        <span className="text-red-400">⚠ {label} unavailable</span>
+        <span className="text-red-400">{label} unavailable</span>
       ) : (
         <span>
           {label}: {count} {count === 1 ? 'item' : 'items'}

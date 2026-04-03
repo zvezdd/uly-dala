@@ -3,25 +3,21 @@ export default function LayerControls({ layers, onToggle }) {
     {
       id: 'buildings',
       label: '3D Buildings',
-      icon: '🏢',
       color: '#475569',
     },
     {
       id: 'trafficFlow',
       label: 'Traffic Flow',
-      icon: '🚗',
       color: '#f97316',
     },
     {
       id: 'trafficIncidents',
       label: 'Incidents',
-      icon: '⚠️',
       color: '#ef4444',
     },
     {
       id: 'airQuality',
       label: 'Air Quality',
-      icon: '🌫️',
       color: '#22d3ee',
     },
   ];
@@ -32,7 +28,7 @@ export default function LayerControls({ layers, onToggle }) {
         Layers
       </h2>
       <div className="flex flex-col gap-2">
-        {controls.map(({ id, label, icon, color }) => (
+        {controls.map(({ id, label, color }) => (
           <label
             key={id}
             className="flex items-center gap-3 cursor-pointer group"
@@ -51,7 +47,7 @@ export default function LayerControls({ layers, onToggle }) {
               <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 peer-checked:translate-x-4" />
             </div>
             <span className="text-sm text-gray-300 group-hover:text-white transition-colors select-none">
-              {icon} {label}
+              {label}
             </span>
           </label>
         ))}

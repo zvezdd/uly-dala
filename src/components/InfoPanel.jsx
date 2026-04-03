@@ -75,7 +75,6 @@ function TrafficDetail({ data }) {
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex items-center gap-2">
-        <span className="text-2xl">{getCategoryEmoji(data.iconCategory)}</span>
         <div>
           <p className="text-white font-semibold text-sm">{data.category}</p>
           <p className="text-gray-400 text-xs">{data.description}</p>
@@ -150,12 +149,7 @@ function getAQAdvice(aqi) {
 }
 
 function getCategoryEmoji(code) {
-  const icons = {
-    1: '💥', 2: '🌫️', 3: '⚠️', 4: '🌧️', 5: '🧊',
-    6: '🚦', 7: '🚧', 8: '🚫', 9: '🔧', 10: '💨',
-    11: '🌊', 14: '🚗',
-  };
-  return icons[code] || '⚠️';
+  return '';
 }
 
 function formatDelay(seconds) {

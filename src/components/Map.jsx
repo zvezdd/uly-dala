@@ -287,12 +287,12 @@ export default function Map({ layers, airStations, trafficIncidents, onFeatureCl
 
 function getIncidentEmoji(code) {
   const icons = {
-    1:  '💥',
-    6:  '🚦',
-    7:  '🚧',
-    8:  '🚫',
-    9:  '🔧',
-    14: '🚗',
+    1:  '!',
+    6:  '~',
+    7:  '#',
+    8:  'X',
+    9:  'W',
+    14: 'B',
   };
-  return icons[code] || '⚠';
+  return icons[code] || '!';
 }
