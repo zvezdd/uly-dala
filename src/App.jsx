@@ -7,6 +7,8 @@ import ChatPanel from './components/ChatPanel.jsx';
 import ForecastPanel from './components/ForecastPanel.jsx';
 import AkimatDashboard from './components/AkimatDashboard.jsx';
 import LandingPage from './components/LandingPage.jsx';
+import AvatarCanvas from './components/avatar/AvatarCanvas.jsx';
+import { AvatarProvider } from './context/AvatarContext.jsx';
 import { useAirQuality } from './hooks/useAirQuality.js';
 import { useTrafficData } from './hooks/useTrafficData.js';
 import { currentHour } from './data/mockPredictions.js';
@@ -101,6 +103,7 @@ export default function App() {
   }
 
   return (
+    <AvatarProvider>
     <div className="relative w-full h-full" style={{ animation: 'mapFadeIn 0.5s ease both' }}>
       <Map layers={layers} airStations={airStations} onFeatureClick={handleFeatureClick} />
 
@@ -176,7 +179,10 @@ export default function App() {
         <CountBadge label={tr.layers.airQuality} count={airStations.length} color="cyan" />
         <CountBadge label="Road Segments" count={trafficGeojson?.features?.length ?? 0} color="orange" />
       </div>
+
+      <AvatarCanvas visible={chatOpen} />
     </div>
+    </AvatarProvider>
   );
 }
 
