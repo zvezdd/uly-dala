@@ -10,6 +10,7 @@ import LandingPage from './components/LandingPage.jsx';
 import { useAirQuality } from './hooks/useAirQuality.js';
 import { useTrafficData } from './hooks/useTrafficData.js';
 import { currentHour } from './data/mockPredictions.js';
+import { useLanguage, LanguageSwitcher } from './context/LanguageContext.jsx';
 
 const DEFAULT_LAYERS = {
   buildings:   true,
@@ -17,17 +18,9 @@ const DEFAULT_LAYERS = {
   airQuality:  true,
 };
 
-function getActiveAlert() {
-  const { congestion, aqi } = currentHour;
-  if (aqi > 150)       return { text: `Air Quality Alert: AQI ${aqi} — Unhealthy conditions across Almaty. Limit outdoor exposure.`, color: '#ef4444' };
-  if (congestion > 75) return { text: `Traffic Alert: ${congestion}% congestion on major roads — Expect significant delays across the city.`, color: '#f97316' };
-  if (aqi > 100)       return { text: `Moderate air quality (AQI ${aqi}) — Sensitive groups should limit prolonged outdoor activity.`, color: '#facc15' };
-  return null;
-}
-
-const activeAlert = getActiveAlert();
-
 export default function App() {
+  const { tr } = useLanguage();
+
   const [phase, setPhase]                     = useState('landing');
   const [layers, setLayers]                   = useState(DEFAULT_LAYERS);
   const [selectedFeature, setSelectedFeature] = useState(null);
@@ -48,21 +41,21 @@ export default function App() {
   const { stations: airStations }   = useAirQuality();
   const { geojson: trafficGeojson } = useTrafficData();
 
-  const handleToggle = useCallback((id) => {
-    setLayers((prev) => ({ ...prev, [id]: !prev[id] }));
-  }, []);
+  const handleToggle       = useCallback((id) => setLayers(p => ({ ...p, [id]: !p[id] })), []);
+  const handleFeatureClick = useCallback((feature) => setSelectedFeature(feature), []);
+  const handleClosePanel   = useCallback(() => setSelectedFeature(null), []);
 
-  const handleFeatureClick = useCallback((feature) => {
-    setSelectedFeature(feature);
-  }, []);
-
-  const handleClosePanel = useCallback(() => {
-    setSelectedFeature(null);
-  }, []);
-
-  const token = import.meta.env.VITE_MAPBOX_TOKEN || '';
-  const hasToken = Boolean(token);
+  const token         = import.meta.env.VITE_MAPBOX_TOKEN || '';
+  const hasToken      = Boolean(token);
   const isSecretToken = token.startsWith('sk.');
+
+  const { congestion, aqi } = currentHour;
+  const activeAlert = (() => {
+    if (aqi > 150)        return { text: tr.alerts.airCritical(aqi),  color: '#ef4444' };
+    if (congestion > 75)  return { text: tr.alerts.trafficHigh(congestion), color: '#f97316' };
+    if (aqi > 100)        return { text: tr.alerts.airModerate(aqi),  color: '#facc15' };
+    return null;
+  })();
 
   if (phase === 'landing' || phase === 'exiting') {
     return <LandingPage onLaunch={handleLaunch} exiting={phase === 'exiting'} />;
@@ -87,22 +80,18 @@ export default function App() {
               <p className="text-gray-400 text-sm mb-4">
                 Mapbox requires a <strong className="text-white">public token</strong>{' '}
                 (<code className="bg-gray-800 px-1 py-0.5 rounded" style={{ color: '#3b9eff' }}>pk.*</code>) in frontend apps.
-                Update <code className="bg-gray-800 px-1 py-0.5 rounded" style={{ color: '#3b9eff' }}>VITE_MAPBOX_TOKEN</code> in{' '}
-                <code className="bg-gray-800 px-1 py-0.5 rounded" style={{ color: '#3b9eff' }}>.env</code>.
               </p>
             </>
           ) : (
             <p className="text-gray-400 text-sm mb-4">
-              A <code className="bg-gray-800 px-1 py-0.5 rounded" style={{ color: '#3b9eff' }}>VITE_MAPBOX_TOKEN</code> is
-              required. Copy <code className="bg-gray-800 px-1 py-0.5 rounded" style={{ color: '#3b9eff' }}>.env.example</code>{' '}
-              to <code className="bg-gray-800 px-1 py-0.5 rounded" style={{ color: '#3b9eff' }}>.env</code> and fill in your public token.
+              Add <code className="bg-gray-800 px-1 py-0.5 rounded" style={{ color: '#3b9eff' }}>VITE_MAPBOX_TOKEN</code> to your{' '}
+              <code className="bg-gray-800 px-1 py-0.5 rounded" style={{ color: '#3b9eff' }}>.env</code> file.
             </p>
           )}
           <a
             href="https://account.mapbox.com/access-tokens/"
-            target="_blank"
-            rel="noreferrer"
-            style={{ background: '#3b9eff', color: '#fff', borderRadius: 50, padding: '10px 24px', fontSize: '0.875rem', fontWeight: 600, textDecoration: 'none', display: 'inline-block', transition: 'box-shadow 0.2s' }}
+            target="_blank" rel="noreferrer"
+            style={{ background: '#3b9eff', color: '#fff', borderRadius: 50, padding: '10px 24px', fontSize: '0.875rem', fontWeight: 600, textDecoration: 'none', display: 'inline-block' }}
           >
             Open Mapbox token dashboard →
           </a>
@@ -113,19 +102,12 @@ export default function App() {
 
   return (
     <div className="relative w-full h-full" style={{ animation: 'mapFadeIn 0.5s ease both' }}>
-      <Map
-        layers={layers}
-        airStations={airStations}
-        onFeatureClick={handleFeatureClick}
-      />
+      <Map layers={layers} airStations={airStations} onFeatureClick={handleFeatureClick} />
 
       <LayerControls layers={layers} onToggle={handleToggle} onDashboard={() => setDashboardOpen(true)} onBack={handleBackToLanding} />
       <Legend layers={layers} />
 
-      <InfoPanel
-        feature={!dashboardOpen ? selectedFeature : null}
-        onClose={handleClosePanel}
-      />
+      <InfoPanel feature={!dashboardOpen ? selectedFeature : null} onClose={handleClosePanel} />
 
       <ForecastPanel
         open={forecastOpen && !selectedFeature && !dashboardOpen}
@@ -145,7 +127,7 @@ export default function App() {
             backdropFilter: 'blur(12px)',
           }}
         >
-          Details
+          {tr.map.details}
         </button>
       )}
 
@@ -157,48 +139,41 @@ export default function App() {
         <button
           onClick={() => setChatOpen(true)}
           className="absolute bottom-4 right-4 z-20 text-white rounded-2xl px-4 py-2.5 text-sm font-semibold shadow-2xl transition-all duration-200"
-          style={{
-            background: '#3b9eff',
-            border: '1px solid rgba(59,158,255,0.4)',
-            boxShadow: '0 4px 20px rgba(59,158,255,0.25)',
-          }}
+          style={{ background: '#3b9eff', border: '1px solid rgba(59,158,255,0.4)', boxShadow: '0 4px 20px rgba(59,158,255,0.25)' }}
           onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 8px 32px rgba(59,158,255,0.45)'; e.currentTarget.style.transform = 'scale(1.03)'; }}
           onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 4px 20px rgba(59,158,255,0.25)'; e.currentTarget.style.transform = 'scale(1)'; }}
         >
-          AI Chat
+          {tr.map.aiChat}
         </button>
       )}
 
+      {/* Title bar + lang switcher */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2">
         <div
-          className="pointer-events-none rounded-full pl-3 pr-5 py-1.5 shadow-xl flex items-center gap-2"
+          className="pointer-events-auto rounded-full shadow-xl flex items-center gap-2 pl-3 pr-2 py-1.5"
           style={{ background: 'rgba(10,22,40,0.88)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.08)' }}
         >
           <img src="/logo.png" alt="Uly Dala" className="h-7 w-7 rounded-full object-cover" />
-          <span className="text-white text-sm font-semibold tracking-wide">Uly Dala</span>
+          <span className="text-white text-sm font-semibold tracking-wide pr-1">Uly Dala</span>
+          <LanguageSwitcher />
         </div>
 
         {activeAlert && !alertDismissed && (
           <div
-            className="pointer-events-auto flex items-center gap-2 px-3 py-1.5 rounded-full shadow-xl border text-xs max-w-xs"
-            style={{
-              backgroundColor: activeAlert.color + '18',
-              borderColor: activeAlert.color + '55',
-            }}
+            className="pointer-events-auto flex items-center gap-2 px-3 py-1.5 rounded-full shadow-xl border text-xs max-w-sm"
+            style={{ backgroundColor: activeAlert.color + '18', borderColor: activeAlert.color + '55' }}
           >
             <span className="text-gray-200 leading-snug">{activeAlert.text}</span>
             <button
               onClick={() => setAlertDismissed(true)}
               className="text-gray-500 hover:text-white shrink-0 ml-1 text-base leading-none"
-            >
-              ×
-            </button>
+            >×</button>
           </div>
         )}
       </div>
 
       <div className="absolute bottom-16 right-4 z-10 flex flex-col items-end gap-1.5">
-        <CountBadge label="Air Quality" count={airStations.length} color="cyan" />
+        <CountBadge label={tr.layers.airQuality} count={airStations.length} color="cyan" />
         <CountBadge label="Road Segments" count={trafficGeojson?.features?.length ?? 0} color="orange" />
       </div>
     </div>
@@ -212,7 +187,7 @@ function CountBadge({ label, count, color }) {
   };
   return (
     <div className={`text-xs px-2.5 py-1 rounded-full border ${colorMap[color]} backdrop-blur-sm`}>
-      {label}: {count} {count === 1 ? 'item' : 'items'}
+      {label}: {count}
     </div>
   );
 }

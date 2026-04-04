@@ -1,8 +1,12 @@
+import { useLanguage } from '../context/LanguageContext.jsx';
+
 export default function LayerControls({ layers, onToggle, onDashboard, onBack }) {
+  const { tr } = useLanguage();
+
   const controls = [
-    { id: 'buildings',   label: '3D Buildings',  color: '#475569' },
-    { id: 'trafficFlow', label: 'Traffic Flow',   color: '#f97316' },
-    { id: 'airQuality',  label: 'Air Quality',    color: '#22d3ee' },
+    { id: 'buildings',   label: tr.layers.buildings,   color: '#475569' },
+    { id: 'trafficFlow', label: tr.layers.trafficFlow,  color: '#f97316' },
+    { id: 'airQuality',  label: tr.layers.airQuality,   color: '#22d3ee' },
   ];
 
   return (
@@ -11,7 +15,7 @@ export default function LayerControls({ layers, onToggle, onDashboard, onBack })
       style={{ background: 'rgba(10,22,40,0.92)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.08)' }}
     >
       <h2 className="text-white text-[10px] font-semibold uppercase tracking-widest mb-3 opacity-50">
-        Layers
+        {tr.layers.title}
       </h2>
       <div className="flex flex-col gap-2.5">
         {controls.map(({ id, label, color }) => (
@@ -44,7 +48,7 @@ export default function LayerControls({ layers, onToggle, onDashboard, onBack })
           onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 20px rgba(59,158,255,0.45)'; e.currentTarget.style.transform = 'scale(1.02)'; }}
           onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 12px rgba(59,158,255,0.25)'; e.currentTarget.style.transform = 'scale(1)'; }}
         >
-          Dashboard
+          {tr.layers.dashboard}
         </button>
         <button
           onClick={onBack}
@@ -57,7 +61,7 @@ export default function LayerControls({ layers, onToggle, onDashboard, onBack })
           onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; e.currentTarget.style.color = 'rgba(255,255,255,0.85)'; }}
           onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)'; }}
         >
-          ← Home
+          {tr.layers.home}
         </button>
       </div>
     </div>

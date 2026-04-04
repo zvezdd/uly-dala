@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getAQHex, getAQLabel, TRAFFIC_LEVEL_COLORS, TRAFFIC_LEVEL_LABELS } from '../config/mapConfig.js';
+import { useLanguage } from '../context/LanguageContext.jsx';
 
 const CSS = `
   .ip-wrap {
@@ -96,6 +97,7 @@ const CSS = `
 `;
 
 export default function InfoPanel({ feature, onClose }) {
+  const { tr } = useLanguage();
   const [displayFeature, setDisplayFeature] = useState(feature);
 
   useEffect(() => {
@@ -106,6 +108,7 @@ export default function InfoPanel({ feature, onClose }) {
   if (!displayFeature) return null;
 
   const isAQ = displayFeature.type === 'air-quality';
+  const info = tr.info;
 
   return (
     <div
@@ -160,7 +163,7 @@ export default function InfoPanel({ feature, onClose }) {
               color: '#3b8fff', fontFamily: "'Space Grotesk', sans-serif",
             }}>
               <span style={{ fontSize: 7, opacity: 0.8 }}>●</span>
-              {isAQ ? 'Air Quality Station' : 'Road Segment'}
+              {isAQ ? info.types.airQuality : info.types.road}
             </span>
           </div>
           <h3 style={{
@@ -169,7 +172,7 @@ export default function InfoPanel({ feature, onClose }) {
             margin: 0, lineHeight: 1.3,
           }}>
             {isAQ
-              ? (displayFeature.data.name || 'Air Quality Station')
+              ? (displayFeature.data.name || info.types.airQuality)
               : (displayFeature.data.roadName || 'Road')}
           </h3>
         </div>
@@ -179,8 +182,8 @@ export default function InfoPanel({ feature, onClose }) {
       {/* ── Body ── */}
       <div style={{ padding: '16px', position: 'relative', zIndex: 1 }}>
         {isAQ
-          ? <AirQualityDetail data={displayFeature.data} />
-          : <TrafficLineDetail data={displayFeature.data} />
+          ? <AirQualityDetail data={displayFeature.data} info={info} />
+          : <TrafficLineDetail data={displayFeature.data} info={info} />
         }
       </div>
     </div>
@@ -190,7 +193,7 @@ export default function InfoPanel({ feature, onClose }) {
 /* ─────────────────────────────────────────────
    Air Quality Detail
 ───────────────────────────────────────────── */
-function AirQualityDetail({ data }) {
+function AirQualityDetail({ data, info }) {
   const aqi   = Number(data.aqi);
   const color = getAQHex(aqi);
   const label = getAQLabel(aqi);
@@ -219,12 +222,12 @@ function AirQualityDetail({ data }) {
           <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '1rem', color, margin: '0 0 4px' }}>{label}</p>
           {data.dominantPollutant && (
             <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 2px' }}>
-              Dominant: <span style={{ color: 'var(--text)' }}>{data.dominantPollutant}</span>
+              {info.labels.dominant}: <span style={{ color: 'var(--text)' }}>{data.dominantPollutant}</span>
             </p>
           )}
           {data.updatedAt && (
             <p style={{ fontSize: 10, color: 'var(--text-dim)', margin: 0 }}>
-              Updated {new Date(data.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {info.labels.updated} {new Date(data.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </p>
           )}
         </div>
@@ -232,7 +235,7 @@ function AirQualityDetail({ data }) {
 
       {/* Pollutants */}
       <div style={{ animation: 'ip-in 350ms 60ms ease-out both' }}>
-        <p className="ip-section-label">Pollutants</p>
+        <p className="ip-section-label">{info.sections.pollutants}</p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px' }}>
           <PollutantBar label="PM2.5" value={data.pm25} unit="μg/m³" max={150} warn={35}  danger={75}  />
           <PollutantBar label="PM10"  value={data.pm10} unit="μg/m³" max={250} warn={54}  danger={154} />
@@ -246,16 +249,16 @@ function AirQualityDetail({ data }) {
       {/* Weather */}
       {(data.temperature !== undefined || data.humidity !== undefined || data.windSpeed !== undefined) && (
         <div style={{ animation: 'ip-in 350ms 120ms ease-out both' }}>
-          <p className="ip-section-label">Weather Conditions</p>
+          <p className="ip-section-label">{info.sections.weather}</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
             {data.temperature !== undefined && (
-              <WeatherTile icon="°C" value={`${data.temperature}°C`} label="Temp" />
+              <WeatherTile icon="°C" value={`${data.temperature}°C`} label={info.weather.temp} />
             )}
             {data.humidity !== undefined && (
-              <WeatherTile icon="RH" value={`${data.humidity}%`} label="Humidity" />
+              <WeatherTile icon="RH" value={`${data.humidity}%`} label={info.weather.humidity} />
             )}
             {data.windSpeed !== undefined && (
-              <WeatherTile icon="WD" value={`${data.windSpeed} km/h`} label={`Wind ${data.windDirection || ''}`} />
+              <WeatherTile icon="WD" value={`${data.windSpeed} km/h`} label={`${info.weather.wind} ${data.windDirection || ''}`} />
             )}
           </div>
         </div>
@@ -267,10 +270,10 @@ function AirQualityDetail({ data }) {
           <span style={{
             fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
             color: '#3b8fff', fontFamily: "'Space Grotesk', sans-serif",
-          }}>✦ Health Advisory</span>
+          }}>{info.advisory.health}</span>
         </div>
         <p style={{ fontSize: '0.78rem', color: '#c5d8f0', lineHeight: 1.65, margin: 0 }}>
-          {getAQAdvice(aqi)}
+          {getAQAdvice(aqi, info)}
         </p>
       </div>
     </div>
@@ -280,7 +283,7 @@ function AirQualityDetail({ data }) {
 /* ─────────────────────────────────────────────
    Traffic Line Detail
 ───────────────────────────────────────────── */
-function TrafficLineDetail({ data }) {
+function TrafficLineDetail({ data, info }) {
   const level = Number(data.level) || 1;
   const color = TRAFFIC_LEVEL_COLORS[level] || '#94a3b8';
   const label = data.levelLabel || TRAFFIC_LEVEL_LABELS[level] || 'Unknown';
@@ -309,7 +312,7 @@ function TrafficLineDetail({ data }) {
 
       {/* Speed section */}
       <div style={{ animation: 'ip-in 350ms 60ms ease-out both' }}>
-        <p className="ip-section-label">Speed</p>
+        <p className="ip-section-label">{info.sections.speed}</p>
         <div
           style={{
             background: 'var(--bg-card)', border: '1px solid var(--border)',
@@ -318,17 +321,17 @@ function TrafficLineDetail({ data }) {
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Current speed</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{info.labels.currentSpeed}</span>
             <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 13, color: '#e8f1ff' }}>{data.currentSpeed} km/h</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Free flow speed</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{info.labels.freeFlow}</span>
             <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 12, color: 'var(--text-muted)' }}>{data.freeFlowSpeed} km/h</span>
           </div>
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontSize: 10, color: 'var(--text-dim)', letterSpacing: '0.05em', textTransform: 'uppercase', fontFamily: "'Space Grotesk', sans-serif" }}>Traffic flow</span>
-              <span style={{ fontSize: 10, fontWeight: 600, color, fontFamily: "'Space Grotesk', sans-serif" }}>{pct}% of normal</span>
+              <span style={{ fontSize: 10, color: 'var(--text-dim)', letterSpacing: '0.05em', textTransform: 'uppercase', fontFamily: "'Space Grotesk', sans-serif" }}>{info.labels.trafficFlow}</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color, fontFamily: "'Space Grotesk', sans-serif" }}>{pct}% {info.labels.ofNormal}</span>
             </div>
             <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 2, transition: 'width 600ms ease' }} />
@@ -343,10 +346,10 @@ function TrafficLineDetail({ data }) {
           <span style={{
             fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
             color: '#3b8fff', fontFamily: "'Space Grotesk', sans-serif",
-          }}>✦ Route Advisory</span>
+          }}>{info.advisory.route}</span>
         </div>
         <p style={{ fontSize: '0.78rem', color: '#c5d8f0', lineHeight: 1.65, margin: 0 }}>
-          {getTrafficAdvice(level, data.congestionPct)}
+          {getTrafficAdvice(level, data.congestionPct, info)}
         </p>
       </div>
     </div>
@@ -398,19 +401,21 @@ function TrafficIcon({ level, color }) {
 /* ─────────────────────────────────────────────
    Advisory text
 ───────────────────────────────────────────── */
-function getAQAdvice(aqi) {
-  if (aqi <= 50)  return 'Air quality is satisfactory. Great conditions for outdoor activities.';
-  if (aqi <= 100) return 'Air quality is acceptable. Unusually sensitive people should consider reducing prolonged outdoor exertion.';
-  if (aqi <= 150) return 'Sensitive groups (children, elderly, heart/lung conditions) should reduce prolonged outdoor exertion.';
-  if (aqi <= 200) return 'Everyone should reduce prolonged outdoor exertion. Sensitive groups should avoid outdoor activity.';
-  if (aqi <= 300) return 'Health alert: everyone may experience health effects. Move activities indoors and reduce outdoor exertion.';
-  return 'Emergency conditions. Entire population is at risk. Avoid all outdoor activities.';
+function getAQAdvice(aqi, info) {
+  const a = info.aqAdvice;
+  if (aqi <= 50)  return a.good;
+  if (aqi <= 100) return a.moderate;
+  if (aqi <= 150) return a.sensitive;
+  if (aqi <= 200) return a.unhealthy;
+  if (aqi <= 300) return a.veryUnhealthy;
+  return a.hazardous;
 }
 
-function getTrafficAdvice(level, congestionPct) {
+function getTrafficAdvice(level, congestionPct, info) {
   const pct = Number(congestionPct) || 0;
-  if (level === 1) return `Traffic is flowing freely at ${100 - pct}% of normal speed. Good conditions for travel.`;
-  if (level === 2) return `Traffic is moving slowly — ${pct}% congestion. Expect minor delays. Consider alternate routes.`;
-  if (level === 3) return `Heavy congestion — ${pct}% slower than normal. Significant delays expected. Plan extra travel time.`;
-  return `Standstill traffic — road is nearly stopped. Avoid this route if possible or wait for conditions to improve.`;
+  const a   = info.trafficAdvice;
+  if (level === 1) return a.free(100 - pct);
+  if (level === 2) return a.slow(pct);
+  if (level === 3) return a.heavy(pct);
+  return a.standstill;
 }

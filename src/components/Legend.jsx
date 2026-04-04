@@ -1,6 +1,8 @@
-import { AQ_COLOR_SCALE, TRAFFIC_LEVEL_COLORS, TRAFFIC_LEVEL_LABELS } from '../config/mapConfig.js';
+import { AQ_COLOR_SCALE, TRAFFIC_LEVEL_COLORS } from '../config/mapConfig.js';
+import { useLanguage } from '../context/LanguageContext.jsx';
 
 export default function Legend({ layers }) {
+  const { tr } = useLanguage();
   const showAQ      = layers.airQuality;
   const showTraffic = layers.trafficFlow;
 
@@ -11,14 +13,14 @@ export default function Legend({ layers }) {
       {showAQ && (
         <div className="bg-gray-900/90 backdrop-blur-sm rounded-xl p-4 shadow-2xl border border-gray-700/50">
           <p className="text-white text-[10px] font-semibold uppercase tracking-widest mb-2.5 opacity-70">
-            AQI Scale
+            {tr.legend.aqiScale}
           </p>
           <div className="flex flex-col gap-1.5">
-            {AQ_COLOR_SCALE.map((band) => (
+            {AQ_COLOR_SCALE.map((band, i) => (
               <div key={band.label} className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: band.hex }} />
+                <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: band.hex }} />
                 <span className="text-xs text-gray-300">
-                  {band.label}
+                  {tr.legend.aqLabels[i]}
                   {band.max !== Infinity && (
                     <span className="text-gray-500 ml-1">≤{band.max}</span>
                   )}
@@ -32,13 +34,13 @@ export default function Legend({ layers }) {
       {showTraffic && (
         <div className="bg-gray-900/90 backdrop-blur-sm rounded-xl p-4 shadow-2xl border border-gray-700/50">
           <p className="text-white text-[10px] font-semibold uppercase tracking-widest mb-2.5 opacity-70">
-            Traffic Flow
+            {tr.legend.trafficFlow}
           </p>
           <div className="flex flex-col gap-1.5">
-            {Object.entries(TRAFFIC_LEVEL_LABELS).map(([level, label]) => (
+            {Object.entries(tr.legend.trafficLabels).map(([level, label]) => (
               <div key={level} className="flex items-center gap-2">
                 <span
-                  className="w-5 h-2 rounded-full flex-shrink-0"
+                  className="w-5 h-2 rounded-full shrink-0"
                   style={{ backgroundColor: TRAFFIC_LEVEL_COLORS[Number(level)] }}
                 />
                 <span className="text-xs text-gray-300">{label}</span>

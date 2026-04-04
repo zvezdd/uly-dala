@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { next24h, currentHour, peakTraffic, peakAQI } from '../data/mockPredictions.js';
 import { getAQHex } from '../config/mapConfig.js';
 import { useAIPredictions } from '../hooks/useAIPredictions.js';
+import { useLanguage } from '../context/LanguageContext.jsx';
 
 function trafficColor(congestion) {
   if (congestion < 25) return '#22c55e';
@@ -46,24 +47,25 @@ function MiniBarChart({ bars, getValue, getColor, label, unit }) {
 }
 
 function AlternativeRoutes() {
+  const { tr } = useLanguage();
   const routes = [
-    { from: 'Al-Farabi Ave', to: 'Abay Ave', saving: '12 min', via: 'Furmanova St', congestion: 38 },
-    { from: 'Raiymbek Ave',  to: 'N Bypass', saving: '8 min',  via: 'Suyunbay Ave', congestion: 22 },
-    { from: 'Seifullin Ave', to: 'Dostyk Ave',saving: '6 min',  via: 'Pushkin St',   congestion: 44 },
+    { from: 'Al-Farabi Ave', to: 'Abay Ave',   saving: '12 min', via: 'Furmanova St', congestion: 38 },
+    { from: 'Raiymbek Ave',  to: 'N Bypass',    saving: '8 min',  via: 'Suyunbay Ave', congestion: 22 },
+    { from: 'Seifullin Ave', to: 'Dostyk Ave',  saving: '6 min',  via: 'Pushkin St',   congestion: 44 },
   ];
 
   return (
     <div>
-      <p className="text-gray-500 text-[10px] uppercase tracking-widest mb-2">Alternative Routes</p>
+      <p className="text-gray-500 text-[10px] uppercase tracking-widest mb-2">{tr.forecast.altRoutes}</p>
       <div className="flex flex-col gap-1.5">
         {routes.map((r, i) => (
           <div key={i} className="bg-gray-800/50 rounded-xl p-2.5 flex items-start gap-2">
             <div className="flex-1 min-w-0">
               <p className="text-white text-[11px] font-medium truncate">
-                {r.from} → via {r.via}
+                {r.from} → {tr.forecast.altVia} {r.via}
               </p>
               <p className="text-gray-500 text-[10px] mt-0.5">
-                Congestion: <span style={{ color: trafficColor(r.congestion) }}>{r.congestion}%</span>
+                {tr.forecast.altCong}: <span style={{ color: trafficColor(r.congestion) }}>{r.congestion}%</span>
               </p>
             </div>
             <span className="text-green-400 text-[10px] font-semibold shrink-0">−{r.saving}</span>
@@ -75,6 +77,7 @@ function AlternativeRoutes() {
 }
 
 export default function ForecastPanel({ open, onClose }) {
+  const { tr } = useLanguage();
   const bars = useMemo(() => next24h.filter((_, i) => i % 2 === 0), []);
   const { data: aiData, loading: aiLoading } = useAIPredictions();
 
@@ -90,8 +93,8 @@ export default function ForecastPanel({ open, onClose }) {
     >
       <div className="sticky top-0 flex items-start justify-between px-4 py-3.5 border-b border-gray-700/50 bg-gray-900/95 backdrop-blur-sm rounded-t-2xl">
         <div>
-          <p className="text-gray-400 text-[10px] uppercase tracking-widest mb-0.5">AI Forecast · 24 Hours</p>
-          <h3 className="text-white font-semibold text-sm">Almaty City Overview</h3>
+          <p className="text-gray-400 text-[10px] uppercase tracking-widest mb-0.5">{tr.forecast.tag}</p>
+          <h3 className="text-white font-semibold text-sm">{tr.forecast.title}</h3>
         </div>
         <button
           onClick={onClose}
@@ -105,14 +108,14 @@ export default function ForecastPanel({ open, onClose }) {
       <div className="p-4 flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-gray-800/60 rounded-xl p-3">
-            <p className="text-gray-500 text-[9px] uppercase tracking-wide mb-1">Traffic Now</p>
+            <p className="text-gray-500 text-[9px] uppercase tracking-wide mb-1">{tr.forecast.trafficNow}</p>
             <p className="font-bold text-xl leading-none" style={{ color: cColor }}>
               {currentHour.congestion}%
             </p>
             <p className="text-xs mt-0.5" style={{ color: cColor }}>{tLabel}</p>
           </div>
           <div className="bg-gray-800/60 rounded-xl p-3">
-            <p className="text-gray-500 text-[9px] uppercase tracking-wide mb-1">AQI Now</p>
+            <p className="text-gray-500 text-[9px] uppercase tracking-wide mb-1">{tr.forecast.aqiNow}</p>
             <p className="font-bold text-xl leading-none" style={{ color: aColor }}>
               {currentHour.aqi}
             </p>
@@ -124,7 +127,7 @@ export default function ForecastPanel({ open, onClose }) {
           bars={bars}
           getValue={d => d.congestion}
           getColor={trafficColor}
-          label="Traffic Congestion (next 24h)"
+          label={tr.forecast.trafficChart}
           unit="%"
         />
 
@@ -132,24 +135,24 @@ export default function ForecastPanel({ open, onClose }) {
           bars={bars}
           getValue={d => d.aqi}
           getColor={getAQHex}
-          label="Air Quality Index (next 24h)"
+          label={tr.forecast.aqiChart}
           unit=""
         />
 
         <div className="flex flex-col gap-2">
           <div className="flex items-start gap-2 bg-gray-800/50 rounded-xl p-3">
             <div>
-              <p className="text-white text-xs font-medium">Peak Traffic</p>
+              <p className="text-white text-xs font-medium">{tr.forecast.peakTraffic}</p>
               <p className="text-[11px] mt-0.5" style={{ color: trafficColor(peakTraffic.congestion) }}>
-                {peakTraffic.congestion}% congestion at {peakTraffic.timeLabel}
+                {tr.forecast.peakFmt(peakTraffic.congestion, peakTraffic.timeLabel)}
               </p>
             </div>
           </div>
           <div className="flex items-start gap-2 bg-gray-800/50 rounded-xl p-3">
             <div>
-              <p className="text-white text-xs font-medium">Peak Air Quality Issue</p>
+              <p className="text-white text-xs font-medium">{tr.forecast.peakAQI}</p>
               <p className="text-[11px] mt-0.5" style={{ color: getAQHex(peakAQI.aqi) }}>
-                AQI {peakAQI.aqi} at {peakAQI.timeLabel}
+                {tr.forecast.aqiFmt(peakAQI.aqi, peakAQI.timeLabel)}
               </p>
             </div>
           </div>
@@ -157,14 +160,14 @@ export default function ForecastPanel({ open, onClose }) {
 
         {aiData?.trafficOutlook && (
           <div className="bg-gray-800/50 rounded-xl p-3">
-            <p className="text-gray-500 text-[10px] uppercase tracking-widest mb-1">AI Traffic Outlook</p>
+            <p className="text-gray-500 text-[10px] uppercase tracking-widest mb-1">{tr.forecast.aiTraffic}</p>
             <p className="text-gray-300 text-xs leading-relaxed">{aiData.trafficOutlook}</p>
           </div>
         )}
 
         {aiData?.airOutlook && (
           <div className="bg-gray-800/50 rounded-xl p-3">
-            <p className="text-gray-500 text-[10px] uppercase tracking-widest mb-1">AI Air Quality Outlook</p>
+            <p className="text-gray-500 text-[10px] uppercase tracking-widest mb-1">{tr.forecast.aiAir}</p>
             <p className="text-gray-300 text-xs leading-relaxed">{aiData.airOutlook}</p>
           </div>
         )}
@@ -174,7 +177,7 @@ export default function ForecastPanel({ open, onClose }) {
         <CitizenAdvisory aiText={aiData?.citizenAdvisory} aiLoading={aiLoading} />
 
         <p className="text-gray-700 text-[9px] text-center">
-          Powered by Uly Dala · Updated hourly
+          {tr.forecast.powered}
         </p>
       </div>
     </div>
@@ -182,34 +185,25 @@ export default function ForecastPanel({ open, onClose }) {
 }
 
 function CitizenAdvisory({ aiText, aiLoading }) {
+  const { tr } = useLanguage();
   const cong = currentHour.congestion;
   const aqi  = currentHour.aqi;
+  const fb   = tr.forecast.fallbacks;
 
   let fallback, color;
-  if (aqi > 150) {
-    fallback = 'Air quality is unhealthy. Limit outdoor exposure and wear a mask if going outside.';
-    color    = '#ef4444';
-  } else if (cong > 75) {
-    fallback = 'Severe congestion on main routes. Use public transport or delay your trip by 1–2 hours.';
-    color    = '#ef4444';
-  } else if (cong > 50) {
-    fallback = 'Heavy traffic expected. Consider alternate routes or traveling outside peak hours.';
-    color    = '#f97316';
-  } else if (peakTraffic.congestion > 70) {
-    fallback = `Peak congestion (${peakTraffic.congestion}%) expected at ${peakTraffic.timeLabel}. Plan your commute accordingly.`;
-    color    = '#facc15';
-  } else {
-    fallback = 'Conditions are good. Enjoy your commute!';
-    color    = '#22c55e';
-  }
+  if (aqi > 150)                      { fallback = fb.airBad;        color = '#ef4444'; }
+  else if (cong > 75)                 { fallback = fb.trafficSevere; color = '#ef4444'; }
+  else if (cong > 50)                 { fallback = fb.trafficHeavy;  color = '#f97316'; }
+  else if (peakTraffic.congestion > 70) { fallback = fb.peakSoon(peakTraffic.congestion, peakTraffic.timeLabel); color = '#facc15'; }
+  else                                { fallback = fb.good;          color = '#22c55e'; }
 
   const text = aiText || fallback;
 
   return (
     <div className="rounded-xl p-3" style={{ backgroundColor: color + '15', border: `1px solid ${color}33` }}>
       <div className="flex items-center justify-between mb-1">
-        <p className="text-[10px] uppercase tracking-widest" style={{ color }}>Citizen Advisory</p>
-        {aiLoading && <span className="text-[9px] text-gray-600 animate-pulse">AI generating...</span>}
+        <p className="text-[10px] uppercase tracking-widest" style={{ color }}>{tr.forecast.advisory}</p>
+        {aiLoading && <span className="text-[9px] text-gray-600 animate-pulse">{tr.forecast.aiGenerating}</span>}
         {aiText && <span className="text-[9px] text-gray-500">AI</span>}
       </div>
       <p className="text-gray-300 text-xs leading-relaxed">{text}</p>

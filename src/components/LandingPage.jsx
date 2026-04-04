@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useLanguage, LanguageSwitcher } from '../context/LanguageContext.jsx';
 
 const CSS = `
   .lp-wrap {
@@ -381,6 +382,8 @@ const CSS = `
 `;
 
 export default function LandingPage({ onLaunch, exiting = false }) {
+  const { tr } = useLanguage();
+  const h = tr.how;
   useEffect(() => {
     const root = document.getElementById('root');
     const prevBodyOverflow = document.body.style.overflow;
@@ -447,11 +450,14 @@ export default function LandingPage({ onLaunch, exiting = false }) {
         <div className="lp-nav-inner">
           <span className="lp-logo">Uly <span>Dala</span></span>
           <ul className="lp-nav-links">
-            <li><a href="#features">Features</a></li>
-            <li><a href="#how">How it works</a></li>
-            <li><a href="#about">About</a></li>
+            <li><a href="#features">{tr.nav.features}</a></li>
+            <li><a href="#how">{tr.nav.howItWorks}</a></li>
+            <li><a href="#about">{tr.nav.about}</a></li>
           </ul>
-          <button className="lp-nav-cta" onClick={onLaunch}>Open Map →</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <LanguageSwitcher />
+            <button className="lp-nav-cta" onClick={onLaunch}>{tr.nav.openMap}</button>
+          </div>
         </div>
       </nav>
 
@@ -462,21 +468,20 @@ export default function LandingPage({ onLaunch, exiting = false }) {
         <div className="lp-hero-inner">
           <div className="lp-pill">
             <span className="lp-pill-dot" />
-            Live in Almaty · Powered by Uly Dala
+            {tr.hero.pill}
           </div>
           <h1 className="lp-h1">
-            The city, understood.<br />
-            <em>Intelligently.</em>
+            {tr.hero.line1}<br />
+            <em>{tr.hero.line2}</em>
           </h1>
           <p className="lp-subtitle">
-            Uly Dala turns Almaty's real-time traffic and air quality data into
-            actionable intelligence — for citizens and city officials alike.
+            {tr.hero.subtitle}
           </p>
           <div className="lp-hero-btns">
             <button className="lp-btn-primary" onClick={onLaunch}>
-            ✦ Launch 3D Map
+            ✦ {tr.hero.launchMap}
             </button>
-            <a href="#features" className="lp-btn-ghost">See features ↓</a>
+            <a href="#features" className="lp-btn-ghost">{tr.hero.seeFeatures}</a>
           </div>
 
           {/* Map mockup */}
@@ -524,7 +529,7 @@ export default function LandingPage({ onLaunch, exiting = false }) {
                 Almaty, Kazakhstan
               </div>
               <div className="lp-map-badge">
-                Live · 3D View
+                {tr.hero.mapBadge}
               </div>
             </div>
           </div>
@@ -534,15 +539,10 @@ export default function LandingPage({ onLaunch, exiting = false }) {
       {/* Stats */}
       <div className="lp-stats">
         <div className="lp-stats-inner">
-          {[
-            { val: '72h', lbl: 'Predictive Horizon' },
-            { val: '18+', lbl: 'Air Quality Stations' },
-            { val: 'AI',  lbl: 'Gemini-Powered Insights' },
-            { val: '3D',  lbl: 'Interactive City Map' },
-          ].map(s => (
+          {tr.stats.map(s => (
             <div key={s.val} className="lp-reveal">
               <span className="lp-stat-val">{s.val}</span>
-              <span className="lp-stat-lbl">{s.lbl}</span>
+              <span className="lp-stat-lbl">{s.label}</span>
             </div>
           ))}
         </div>
@@ -552,47 +552,16 @@ export default function LandingPage({ onLaunch, exiting = false }) {
       <div id="features">
         <div className="lp-section">
           <div className="lp-reveal">
-            <p className="lp-section-tag">Platform Capabilities</p>
+            <p className="lp-section-tag">{tr.features.tag}</p>
             <h2 className="lp-section-title">
-              Everything a smart city needs
+              {tr.features.title}
             </h2>
             <p className="lp-section-sub">
-              From predictive models to citizen alerts — Uly Dala connects data to decisions.
+              {tr.features.subtitle}
             </p>
           </div>
           <div className="lp-features-grid">
-            {[
-              {
-                icon: 'TF',
-                title: 'Traffic Prediction',
-                desc: 'AI forecasts congestion 72 hours ahead using historical patterns, weather, and events — so Akimat acts before jams form.',
-              },
-              {
-                icon: 'AQ',
-                title: 'Air Quality Intelligence',
-                desc: 'Real-time PM2.5, PM10, and NO₂ monitoring across 18+ stations with predictive trend analysis and health alerts.',
-              },
-              {
-                icon: 'DB',
-                title: 'Akimat Dashboard',
-                desc: 'City officials get prioritised AI recommendations: traffic rerouting, signal timing optimization, and emission-reduction actions.',
-              },
-              {
-                icon: 'MP',
-                title: '3D Interactive Map',
-                desc: 'Explore Almaty in full 3D with live traffic overlays, air quality heat zones, and real road-network alignment.',
-              },
-              {
-                icon: 'AL',
-                title: 'Citizen Alerts',
-                desc: 'Contextual push alerts for poor air quality and traffic incidents, with alternative route suggestions.',
-              },
-              {
-                icon: 'AI',
-                title: 'Gemini AI Advisor',
-                desc: 'An always-on AI assistant that synthesizes city data into plain-language advisories for both officials and citizens.',
-              },
-            ].map(card => (
+            {tr.features.cards.map(card => (
               <div key={card.title} className="lp-card lp-reveal">
                 <div className="lp-card-icon">{card.icon}</div>
                 <div className="lp-card-title">{card.title}</div>
@@ -611,20 +580,16 @@ export default function LandingPage({ onLaunch, exiting = false }) {
           <div className="lp-how-grid">
             <div>
               <div className="lp-reveal">
-                <p className="lp-section-tag">How it works</p>
+                <p className="lp-section-tag">{h.tag}</p>
                 <h2 className="lp-section-title">
-                  From raw data to<br /><em style={{ fontStyle:'italic', color:'#3b9eff' }}>smart decisions</em>
+                  {h.title}<br /><em style={{ fontStyle:'italic', color:'#3b9eff' }}>{h.titleItalic}</em>
                 </h2>
                 <p className="lp-section-sub" style={{ marginBottom: 36 }}>
-                  Three layers of intelligence working in real time.
+                  {h.subtitle}
                 </p>
               </div>
               <div className="lp-steps">
-                {[
-                  { n:'01', title:'Data Ingestion', desc:'Traffic sensors, air quality stations, and weather APIs stream live data into the platform every minute.' },
-                  { n:'02', title:'AI Analysis', desc:'Gemini models process historical patterns with current conditions to produce 72-hour forecasts and anomaly detection.' },
-                  { n:'03', title:'Actionable Insights', desc:'City officials receive prioritised recommendations; citizens see personalised alerts and route suggestions on the map.' },
-                ].map(s => (
+                {h.steps.map(s => (
                   <div key={s.n} className="lp-step lp-reveal">
                     <div className="lp-step-num">{s.n}</div>
                     <div>
@@ -636,29 +601,29 @@ export default function LandingPage({ onLaunch, exiting = false }) {
               </div>
             </div>
             <div className="lp-visual-card lp-reveal">
-              <p style={{ fontSize:'0.7rem', color:'#3b9eff', fontWeight:600, letterSpacing:'0.08em', marginBottom:16 }}>LIVE FORECAST — NEXT 24H</p>
-              {[
-                { t:'08:00', traffic:'High', aqi:112, tc:'#ef4444', ac:'#f97316' },
-                { t:'12:00', traffic:'Medium', aqi:89, tc:'#facc15', ac:'#facc15' },
-                { t:'17:00', traffic:'High', aqi:134, tc:'#ef4444', ac:'#ef4444' },
-                { t:'21:00', traffic:'Low', aqi:67, tc:'#22c55e', ac:'#22c55e' },
-              ].map(row => (
-                <div key={row.t} style={{
-                  display:'flex', alignItems:'center', gap:12,
-                  padding:'10px 0', borderBottom:'1px solid rgba(255,255,255,0.05)',
-                }}>
-                  <span style={{ color:'#7a9cc4', fontSize:'0.78rem', width:44 }}>{row.t}</span>
-                  <span style={{
-                    fontSize:'0.72rem', fontWeight:600, color: row.tc,
-                    background: row.tc + '18', border: `1px solid ${row.tc}40`,
-                    borderRadius:6, padding:'2px 8px', flex:1,
-                  }}>{row.traffic} Traffic</span>
-                  <span style={{ fontSize:'0.72rem', color: row.ac, fontWeight:600 }}>AQI {row.aqi}</span>
-                </div>
-              ))}
+              <p style={{ fontSize:'0.7rem', color:'#3b9eff', fontWeight:600, letterSpacing:'0.08em', marginBottom:16 }}>{h.forecastLabel}</p>
+              {h.forecastRows.map(row => {
+                const trafficColors = { 'High': '#ef4444', 'Высокий': '#ef4444', 'Жоғары': '#ef4444', 'Medium': '#facc15', 'Средний': '#facc15', 'Орташа': '#facc15', 'Low': '#22c55e', 'Низкий': '#22c55e', 'Төмен': '#22c55e' };
+                const tc = trafficColors[row.traffic] || '#facc15';
+                const ac = row.aqi > 100 ? '#ef4444' : row.aqi > 50 ? '#facc15' : '#22c55e';
+                return (
+                  <div key={row.t} style={{
+                    display:'flex', alignItems:'center', gap:12,
+                    padding:'10px 0', borderBottom:'1px solid rgba(255,255,255,0.05)',
+                  }}>
+                    <span style={{ color:'#7a9cc4', fontSize:'0.78rem', width:44 }}>{row.t}</span>
+                    <span style={{
+                      fontSize:'0.72rem', fontWeight:600, color: tc,
+                      background: tc + '18', border: `1px solid ${tc}40`,
+                      borderRadius:6, padding:'2px 8px', flex:1,
+                    }}>{row.traffic}</span>
+                    <span style={{ fontSize:'0.72rem', color: ac, fontWeight:600 }}>AQI {row.aqi}</span>
+                  </div>
+                );
+              })}
               <div style={{ marginTop:18, display:'flex', gap:8, flexWrap:'wrap' }}>
-                <span style={{ background:'rgba(59,158,255,0.1)', border:'1px solid rgba(59,158,255,0.25)', borderRadius:6, padding:'5px 10px', fontSize:'0.72rem', color:'#3b9eff', fontWeight:500 }}>AI Advisory active</span>
-                <span style={{ background:'rgba(34,197,94,0.1)', border:'1px solid rgba(34,197,94,0.25)', borderRadius:6, padding:'5px 10px', fontSize:'0.72rem', color:'#22c55e', fontWeight:500 }}>18 Stations online</span>
+                <span style={{ background:'rgba(59,158,255,0.1)', border:'1px solid rgba(59,158,255,0.25)', borderRadius:6, padding:'5px 10px', fontSize:'0.72rem', color:'#3b9eff', fontWeight:500 }}>{h.aiBadge}</span>
+                <span style={{ background:'rgba(34,197,94,0.1)', border:'1px solid rgba(34,197,94,0.25)', borderRadius:6, padding:'5px 10px', fontSize:'0.72rem', color:'#22c55e', fontWeight:500 }}>{h.stationsBadge}</span>
               </div>
             </div>
           </div>
@@ -668,12 +633,11 @@ export default function LandingPage({ onLaunch, exiting = false }) {
       {/* Quote */}
       <div className="lp-quote-section">
         <blockquote className="lp-quote">
-          "The future of urban management is not reactive — it is predictive, transparent,
-          and built for the people who live in the city."
+          {tr.quote.text}
         </blockquote>
-        <p style={{ color:'#3d5a7a', fontSize:'0.82rem' }}>Uly Dala · Almaty City Intelligence Platform</p>
+        <p style={{ color:'#3d5a7a', fontSize:'0.82rem' }}>{tr.quote.author}</p>
         <div className="lp-trust-badges">
-          {['Real-time Data', 'AI-Powered', 'Mapbox 3D', 'Gemini API', 'Open Platform'].map(b => (
+          {tr.quote.badges.map(b => (
             <span key={b} className="lp-badge">{b}</span>
           ))}
         </div>
@@ -681,21 +645,21 @@ export default function LandingPage({ onLaunch, exiting = false }) {
 
       {/* CTA */}
       <div className="lp-cta" id="about">
-        <h2 className="lp-cta-title">Ready to explore Almaty?</h2>
-        <p className="lp-cta-sub">Open the live 3D map and see the city's pulse in real time.</p>
+        <h2 className="lp-cta-title">{tr.cta.title}</h2>
+        <p className="lp-cta-sub">{tr.cta.subtitle}</p>
         <button className="lp-btn-primary" onClick={onLaunch} style={{ fontSize:'1.05rem', padding:'16px 40px' }}>
-          Launch the Map
+          {tr.cta.button}
         </button>
       </div>
 
       {/* Footer */}
       <footer>
         <div className="lp-footer">
-          <span className="lp-footer-copy">© 2026 Uly Dala · Almaty City Intelligence Platform</span>
+          <span className="lp-footer-copy">{tr.footer.copy}</span>
           <div className="lp-footer-links">
-            <a href="#features">Features</a>
-            <a href="#how">How it works</a>
-            <a href="#about">About</a>
+            <a href="#features">{tr.footer.links[0]}</a>
+            <a href="#how">{tr.footer.links[1]}</a>
+            <a href="#about">{tr.footer.links[2]}</a>
           </div>
         </div>
       </footer>
