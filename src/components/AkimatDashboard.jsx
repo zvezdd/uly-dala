@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { recommendations, zoneAnalytics } from '../data/mockRecommendations.js';
+import { recommendations as recData, zoneAnalytics } from '../data/mockRecommendations.js';
 import { next24h, threeDayOutlook, currentHour, peakTraffic, peakAQI } from '../data/mockPredictions.js';
 import { getAQHex } from '../config/mapConfig.js';
 import { useAIPredictions } from '../hooks/useAIPredictions.js';
+import { useLanguage } from '../context/LanguageContext.jsx';
 
 /* ─────────────────────────────────────────────
    Scoped CSS — all selectors prefixed .dash-
@@ -189,15 +190,15 @@ function trafficLabel(c) {
   return c >= 75 ? 'Standstill' : c >= 50 ? 'Congested' : c >= 30 ? 'Slow' : 'Free Flow';
 }
 
-const PRIORITY = {
-  critical: { label: 'CRITICAL', bg: 'rgba(255,71,87,0.15)',  color: '#ff4757', border: 'rgba(255,71,87,0.3)',  pulse: true },
-  high:     { label: 'HIGH',     bg: 'rgba(255,140,66,0.15)', color: '#ff8c42', border: 'rgba(255,140,66,0.3)', pulse: false },
-  medium:   { label: 'MEDIUM',   bg: 'rgba(255,208,96,0.15)', color: '#ffd060', border: 'rgba(255,208,96,0.3)', pulse: false },
-  low:      { label: 'LOW',      bg: 'rgba(0,229,160,0.15)',  color: '#00e5a0', border: 'rgba(0,229,160,0.3)',  pulse: false },
+const PRIORITY_STYLES = {
+  critical: { bg: 'rgba(255,71,87,0.15)',  color: '#ff4757', border: 'rgba(255,71,87,0.3)',  pulse: true  },
+  high:     { bg: 'rgba(255,140,66,0.15)', color: '#ff8c42', border: 'rgba(255,140,66,0.3)', pulse: false },
+  medium:   { bg: 'rgba(255,208,96,0.15)', color: '#ffd060', border: 'rgba(255,208,96,0.3)', pulse: false },
+  low:      { bg: 'rgba(0,229,160,0.15)',  color: '#00e5a0', border: 'rgba(0,229,160,0.3)',  pulse: false },
 };
-const CATEGORY = {
-  traffic: { label: 'Traffic',     color: '#ff8c42' },
-  air:     { label: 'Air Quality', color: '#00d4ff' },
+const CATEGORY_COLORS = {
+  traffic: '#ff8c42',
+  air:     '#00d4ff',
 };
 
 /* ─────────────────────────────────────────────
@@ -241,9 +242,10 @@ function ZoneRow({ z, delay = 0 }) {
   );
 }
 
-function RecCard({ rec, expanded, onToggle, delay = 0 }) {
-  const p = PRIORITY[rec.priority];
-  const c = CATEGORY[rec.category];
+function RecCard({ rec, expanded, onToggle, delay = 0, priorityLabels, categoryLabels, effortLabel }) {
+  const p = { ...PRIORITY_STYLES[rec.priority], label: priorityLabels[rec.priority] };
+  const catColor = CATEGORY_COLORS[rec.category];
+  const catLabel = categoryLabels[rec.category];
   return (
     <button
       className={`dash-rec${expanded ? ' expanded' : ''}`}
@@ -277,7 +279,7 @@ function RecCard({ rec, expanded, onToggle, delay = 0 }) {
             >
               {p.label}
             </span>
-            <span style={{ fontSize: '0.7rem', fontWeight: 500, color: c.color }}>{c.label}</span>
+            <span style={{ fontSize: '0.7rem', fontWeight: 500, color: catColor }}>{catLabel}</span>
           </div>
 
           <p style={{ color: 'var(--text)', fontSize: '0.875rem', fontWeight: 500, lineHeight: 1.35, margin: 0 }}>
@@ -300,7 +302,7 @@ function RecCard({ rec, expanded, onToggle, delay = 0 }) {
               </div>
               <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: '0.75rem' }}>
                 <span style={{ color: '#00e5a0', fontWeight: 600 }}>↑ {rec.impact}</span>
-                <span style={{ color: 'var(--text-muted)' }}>Effort: {rec.effort}</span>
+                <span style={{ color: 'var(--text-muted)' }}>{effortLabel}: {rec.effort}</span>
                 <span style={{ color: 'var(--text-muted)' }}>{rec.timeframe}</span>
               </div>
             </div>
@@ -315,9 +317,21 @@ function RecCard({ rec, expanded, onToggle, delay = 0 }) {
    Main dashboard
 ───────────────────────────────────────────── */
 export default function AkimatDashboard({ onClose }) {
+  const { tr } = useLanguage();
   const [filter, setFilter]     = useState('all');
   const [expanded, setExpanded] = useState(null);
   const { data: aiData, loading: aiLoading } = useAIPredictions();
+  const d = tr.dashboard;
+
+  const recommendations = recData.map((rec, i) => ({
+    ...rec,
+    ...(tr.recommendations?.[i] && {
+      title:       tr.recommendations[i].title,
+      description: tr.recommendations[i].description,
+      effort:      tr.recommendations[i].effort,
+      timeframe:   tr.recommendations[i].timeframe,
+    }),
+  }));
 
   const avgCong   = Math.round(next24h.reduce((s, h) => s + h.congestion, 0) / next24h.length);
   const avgAQI    = Math.round(next24h.reduce((s, h) => s + h.aqi, 0) / next24h.length);
@@ -369,15 +383,14 @@ export default function AkimatDashboard({ onClose }) {
               fontSize: 9, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase',
               fontFamily: "'Space Grotesk', sans-serif",
             }}>
-              Akimat Dashboard
-            </span>
+              Akimat Dashboard            </span>
           </div>
           <h2 style={{
             fontFamily: "'Space Grotesk', sans-serif",
             fontSize: '1.65rem', fontWeight: 700,
             color: 'var(--text)', margin: 0, letterSpacing: '-0.02em',
           }}>
-            City Management Overview
+            {d.title}
           </h2>
         </div>
 
@@ -426,9 +439,9 @@ export default function AkimatDashboard({ onClose }) {
                 <span style={{
                   fontSize: 9, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase',
                   color: 'var(--primary)', fontFamily: "'Space Grotesk', sans-serif",
-                }}>AI Priority Action</span>
+                }}>{d.aiLabel}</span>
                 {aiLoading && (
-                  <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', animation: 'dash-crit-pulse 1.5s ease infinite' }}>Generating…</span>
+                  <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', animation: 'dash-crit-pulse 1.5s ease infinite' }}>{d.aiGenerating}</span>
                 )}
               </div>
               <p style={{ color: '#c5d8f0', fontSize: '0.875rem', lineHeight: 1.65, margin: 0 }}>
@@ -439,10 +452,10 @@ export default function AkimatDashboard({ onClose }) {
 
           {/* Current Snapshot */}
           <div style={{ flexShrink: 0 }}>
-            <p className="dash-section-label">Current Snapshot</p>
+            <p className="dash-section-label">{d.sections.snapshot}</p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
               <MetricCard
-                label="Live Traffic"
+                label={d.kpis.liveTraffic}
                 value={currentHour.congestion}
                 suffix="%"
                 sub={trafficLabel(currentHour.congestion)}
@@ -450,7 +463,7 @@ export default function AkimatDashboard({ onClose }) {
                 delay={60}
               />
               <MetricCard
-                label="Live AQI"
+                label={d.kpis.liveAQI}
                 value={currentHour.aqi}
                 sub={currentHour.weather}
                 color={getAQHex(currentHour.aqi)}
@@ -458,19 +471,19 @@ export default function AkimatDashboard({ onClose }) {
               />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-              <MetricCard label="24h Avg Traffic" value={avgCong} suffix="%" color={trafficColor(avgCong)} delay={180} />
-              <MetricCard label="24h Avg AQI"     value={avgAQI}          color={getAQHex(avgAQI)}         delay={240} />
-              <MetricCard label="Critical Items"  value={critCount}       color="#ff4757"                  delay={300} />
+              <MetricCard label={d.kpis.avgTraffic} value={avgCong} suffix="%" color={trafficColor(avgCong)} delay={180} />
+              <MetricCard label={d.kpis.avgAQI}     value={avgAQI}          color={getAQHex(avgAQI)}         delay={240} />
+              <MetricCard label={d.kpis.critical}   value={critCount}       color="#ff4757"                  delay={300} />
             </div>
           </div>
 
           {/* Zone Status */}
           <div style={{ flexShrink: 0 }}>
-            <p className="dash-section-label">Zone Status</p>
+            <p className="dash-section-label">{d.sections.zones}</p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 8px', paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
-              <span style={{ flex: 1, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', fontFamily: "'Space Grotesk', sans-serif" }}>Zone</span>
-              <span style={{ width: 40, textAlign: 'right', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', fontFamily: "'Space Grotesk', sans-serif" }}>Cong</span>
-              <span style={{ width: 40, textAlign: 'right', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', fontFamily: "'Space Grotesk', sans-serif" }}>AQI</span>
+              <span style={{ flex: 1, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', fontFamily: "'Space Grotesk', sans-serif" }}>{d.zones.zone}</span>
+              <span style={{ width: 40, textAlign: 'right', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', fontFamily: "'Space Grotesk', sans-serif" }}>{d.zones.cong}</span>
+              <span style={{ width: 40, textAlign: 'right', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', fontFamily: "'Space Grotesk', sans-serif" }}>{d.zones.aqi}</span>
               <span style={{ width: 24, textAlign: 'center', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', fontFamily: "'Space Grotesk', sans-serif" }}>↕</span>
             </div>
             {zoneAnalytics.map((z, i) => (
@@ -480,18 +493,18 @@ export default function AkimatDashboard({ onClose }) {
 
           {/* 3-Day Outlook */}
           <div style={{ flexShrink: 0 }}>
-            <p className="dash-section-label">3-Day AI Outlook</p>
+            <p className="dash-section-label">{d.sections.outlook}</p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-              {threeDayOutlook.map((d, i) => (
-                <div key={d.day} className="dash-outlook-card" style={{ animation: `dash-in 400ms ${660 + i * 60}ms ease-out both` }}>
-                  <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 12 }}>{d.day}</p>
+              {threeDayOutlook.map((day, i) => (
+                <div key={day.day} className="dash-outlook-card" style={{ animation: `dash-in 400ms ${660 + i * 60}ms ease-out both` }}>
+                  <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 12 }}>{day.day}</p>
                   <div style={{ marginBottom: 10 }}>
-                    <p style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 3, fontFamily: "'Space Grotesk', sans-serif" }}>Traffic</p>
-                    <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '1.15rem', color: trafficColor(d.avgCongestion), margin: 0 }}>{d.avgCongestion}%</p>
+                    <p style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 3, fontFamily: "'Space Grotesk', sans-serif" }}>{d.outlook.traffic}</p>
+                    <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '1.15rem', color: trafficColor(day.avgCongestion), margin: 0 }}>{day.avgCongestion}%</p>
                   </div>
                   <div>
-                    <p style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 3, fontFamily: "'Space Grotesk', sans-serif" }}>Air</p>
-                    <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '1.15rem', color: getAQHex(d.avgAQI), margin: 0 }}>AQI {d.avgAQI}</p>
+                    <p style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 3, fontFamily: "'Space Grotesk', sans-serif" }}>{d.outlook.air}</p>
+                    <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '1.15rem', color: getAQHex(day.avgAQI), margin: 0 }}>AQI {day.avgAQI}</p>
                   </div>
                 </div>
               ))}
@@ -500,17 +513,17 @@ export default function AkimatDashboard({ onClose }) {
 
           {/* Peak Forecast */}
           <div style={{ flexShrink: 0 }}>
-            <p className="dash-section-label">Peak Forecast (24h)</p>
+            <p className="dash-section-label">{d.sections.peakForecast}</p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <div className="dash-outlook-card" style={{ animation: 'dash-in 400ms 840ms ease-out both' }}>
-                <p style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 6, fontFamily: "'Space Grotesk', sans-serif" }}>Peak Traffic</p>
+                <p style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 6, fontFamily: "'Space Grotesk', sans-serif" }}>{d.peak.traffic}</p>
                 <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '1.3rem', color: trafficColor(peakTraffic.congestion), margin: 0 }}>{peakTraffic.congestion}%</p>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>at {peakTraffic.timeLabel}</p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>{d.peak.at} {peakTraffic.timeLabel}</p>
               </div>
               <div className="dash-outlook-card" style={{ animation: 'dash-in 400ms 900ms ease-out both' }}>
-                <p style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 6, fontFamily: "'Space Grotesk', sans-serif" }}>Peak AQI</p>
+                <p style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 6, fontFamily: "'Space Grotesk', sans-serif" }}>{d.peak.aqi}</p>
                 <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '1.3rem', color: getAQHex(peakAQI.aqi), margin: 0 }}>{peakAQI.aqi}</p>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>at {peakAQI.timeLabel}</p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>{d.peak.at} {peakAQI.timeLabel}</p>
               </div>
             </div>
           </div>
@@ -530,7 +543,7 @@ export default function AkimatDashboard({ onClose }) {
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexShrink: 0, animation: 'dash-in 400ms 60ms ease-out both' }}
           >
             <p className="dash-section-label" style={{ margin: 0 }}>
-              Recommendations ({shown.length})
+              {d.sections.recommendations} ({shown.length})
             </p>
             <div style={{ display: 'flex', gap: 6 }}>
               {['all', 'traffic', 'air'].map(f => (
@@ -539,7 +552,7 @@ export default function AkimatDashboard({ onClose }) {
                   className={`dash-filter${filter === f ? ' active' : ''}`}
                   onClick={() => setFilter(f)}
                 >
-                  {f === 'all' ? 'All' : CATEGORY[f].label}
+                  {f === 'all' ? d.filters.all : f === 'traffic' ? d.filters.traffic : d.filters.air}
                 </button>
               ))}
             </div>
@@ -557,6 +570,9 @@ export default function AkimatDashboard({ onClose }) {
                 expanded={expanded === rec.id}
                 onToggle={() => setExpanded(expanded === rec.id ? null : rec.id)}
                 delay={i * 50}
+                priorityLabels={d.priority}
+                categoryLabels={d.category}
+                effortLabel={d.effort}
               />
             ))}
           </div>
@@ -569,7 +585,7 @@ export default function AkimatDashboard({ onClose }) {
         flexShrink: 0, position: 'relative', zIndex: 1,
       }}>
         <p style={{ fontSize: 11, color: 'var(--text-dim)', textAlign: 'center', margin: 0, fontFamily: "'Inter', sans-serif" }}>
-          Powered by Gemini AI · Data reflects 72-hour predictive model
+          {d.footer}
         </p>
       </div>
     </div>
