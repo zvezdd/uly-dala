@@ -80,6 +80,9 @@ export function Avatar(props) {
       setAudio(null);
       window.speechSynthesis.cancel();
       const utter = new SpeechSynthesisUtterance(message.ttsText);
+      const isRussian = /[а-яёА-ЯЁ]/.test(message.ttsText);
+      const isKazakh = /[әіңғүұқөһӘІҢҒҮҰҚӨҺ]/.test(message.ttsText);
+      utter.lang = isKazakh ? 'kk-KZ' : isRussian ? 'ru-RU' : 'en-US';
       utter.onend = onMessagePlayed;
       window.speechSynthesis.speak(utter);
     } else {
