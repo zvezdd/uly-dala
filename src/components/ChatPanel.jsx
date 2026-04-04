@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { useAvatar } from '../hooks/useAvatar.js';
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_KEY || '');
 
@@ -24,6 +25,7 @@ export default function ChatPanel({ onClose }) {
   const chatRef = useRef(null);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
+  const { speak } = useAvatar();
 
   useEffect(() => {
     if (!chatRef.current) {
@@ -46,7 +48,9 @@ export default function ChatPanel({ onClose }) {
     try {
       const result = await chatRef.current.sendMessage(text);
       const response = await result.response;
-      setMessages((prev) => [...prev, { role: 'model', text: response.text() }]);
+      const responseText = response.text();
+      setMessages((prev) => [...prev, { role: 'model', text: responseText }]);
+      speak(responseText);
     } catch (err) {
       console.error('Gemini error:', err?.message, err?.status, err);
       const is429 = err?.message?.includes('429') || err?.status === 429;
@@ -76,7 +80,7 @@ export default function ChatPanel({ onClose }) {
   return (
     <div className="absolute bottom-4 right-4 z-20 w-80 flex flex-col bg-gray-900/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700/50 overflow-hidden"
       style={{ maxHeight: '70vh' }}>
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700/50 flex-shrink-0">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700/50 shrink-0">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
           <span className="text-white text-sm font-semibold">AI Assistant</span>
@@ -122,7 +126,7 @@ export default function ChatPanel({ onClose }) {
         <div ref={bottomRef} />
       </div>
 
-      <div className="px-3 pb-3 pt-2 border-t border-gray-700/50 flex-shrink-0">
+      <div className="px-3 pb-3 pt-2 border-t border-gray-700/50 shrink-0">
         <div className="flex gap-2">
           <input
             ref={inputRef}
@@ -137,7 +141,7 @@ export default function ChatPanel({ onClose }) {
           <button
             onClick={sendMessage}
             disabled={loading || !input.trim()}
-            className="bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl px-3 py-2 text-sm font-medium transition-colors flex-shrink-0"
+            className="bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl px-3 py-2 text-sm font-medium transition-colors shrink-0"
           >
             Send
           </button>
